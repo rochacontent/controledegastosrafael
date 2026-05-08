@@ -837,8 +837,18 @@ function renderParcelas(){
 }
 
 function deletar(id){
-  if(!confirm('Excluir este lançamento?'))return;
-  txs=txs.filter(t=>t.id!==id);save();renderAll();
+  const t=txs.find(x=>x.id===id);
+  if(!t)return;
+  if(t.grupoId&&t.totalParcelas>1){
+    const restantes=txs.filter(x=>x.grupoId===t.grupoId);
+    const opcao=confirm(`Este lançamento faz parte de uma compra de ${t.totalParcelas}x.\n\nOK = excluir TODAS as ${restantes.length} parcela(s)\nCancelar = excluir só esta parcela`);
+    if(opcao){txs=txs.filter(x=>x.grupoId!==t.grupoId);}
+    else{txs=txs.filter(x=>x.id!==id);}
+  } else {
+    if(!confirm('Excluir este lançamento?'))return;
+    txs=txs.filter(x=>x.id!==id);
+  }
+  save();renderAll();
 }
 
 function addCat(){
