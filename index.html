@@ -1018,21 +1018,19 @@ function toggleRecorrente(){
 
 function gerarPendentesRecorrentes(){
   const hoje=new Date();
-  // generate for current month AND all future months already viewed
-  // generate for months from recorrente creation up to current view month
   recorrentes.filter(r=>r.ativo).forEach(r=>{
-    // generate from month of creation up to viewMonth
     const inicio=new Date(r.criadoEm||hoje);
     const fimY=vy, fimM=vm;
     let curY=inicio.getFullYear(), curM=inicio.getMonth();
     while(curY<fimY||(curY===fimY&&curM<=fimM)){
       const mesStr=curY+'-'+String(curM+1).padStart(2,'0');
-      const jaExiste=txs.some(t=>t.recId===r.id&&t.data.slice(0,7)===mesStr);
+      const idFixo='rec_'+r.id+'_'+mesStr;
+      const jaExiste=txs.some(t=>t.id===idFixo||(t.recId===r.id&&t.data.slice(0,7)===mesStr));
       if(!jaExiste){
         const dia=r.dia||1;
         const dataStr=mesStr+'-'+String(Math.min(dia,28)).padStart(2,'0');
         txs.push({
-          id:'rec_'+r.id+'_'+mesStr,
+          id:idFixo,
           tipo:r.tipo,desc:r.desc,valor:r.valor,cat:r.cat,
           data:dataStr,forma:r.forma,
           recId:r.id,pendente:false,parcela:null
