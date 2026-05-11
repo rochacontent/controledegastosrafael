@@ -254,9 +254,62 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @media(max-width:400px){
   .metrics{grid-template-columns:1fr}
 }
+/* LOCK SCREEN */
+.lock-screen{position:fixed;inset:0;background:#111;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.lock-card{background:#1C1C1C;border-radius:20px;padding:40px 36px;width:340px;max-width:calc(100vw - 32px);text-align:center;border:1px solid #2A2A2A}
+.lock-icon{width:56px;height:56px;background:#2A2A2A;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.lock-icon svg{width:26px;height:26px;stroke:#888;fill:none;stroke-width:1.8}
+.lock-title{font-size:18px;font-weight:600;color:#fff;margin-bottom:6px}
+.lock-sub{font-size:13px;color:#666;margin-bottom:28px}
+.lock-input{width:100%;padding:12px 16px;background:#111;border:1.5px solid #2A2A2A;border-radius:10px;color:#fff;font-size:15px;font-family:'DM Sans',sans-serif;text-align:center;letter-spacing:.15em;outline:none;transition:border .15s}
+.lock-input:focus{border-color:#555}
+.lock-input::placeholder{color:#444;letter-spacing:normal}
+.lock-btn{width:100%;margin-top:12px;padding:13px;background:#fff;color:#111;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.lock-btn:hover{background:#e0e0e0}
+.lock-err{font-size:12px;color:#E85858;margin-top:10px;min-height:18px;font-weight:500}
+.lock-setup{margin-top:20px;padding-top:20px;border-top:1px solid #2A2A2A}
+.lock-setup p{font-size:11px;color:#444;margin-bottom:10px}
+.lock-setup input{width:100%;padding:10px 14px;background:#111;border:1.5px solid #2A2A2A;border-radius:8px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:8px}
+.lock-setup input:focus{border-color:#555}
+.lock-setup button{width:100%;padding:10px;background:#2A2A2A;color:#ccc;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.lock-setup button:hover{background:#333;color:#fff}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.shake{animation:shake .35s ease}
 </style>
 </head>
 <body>
+
+<!-- LOCK SCREEN -->
+<div class="lock-screen" id="lock-screen">
+  <div class="lock-card">
+    <div class="lock-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+    <div class="lock-title">Rafael Jesus</div>
+    <div class="lock-sub" id="lock-sub"></div>
+
+    <!-- Tela de login (senha já definida) -->
+    <div id="lock-login" style="display:none">
+      <input class="lock-input" id="lock-input" type="password" placeholder="••••••••" maxlength="20"
+        onkeydown="if(event.key==='Enter')tentarSenha()"/>
+      <button class="lock-btn" onclick="tentarSenha()">Entrar</button>
+      <div class="lock-err" id="lock-err"></div>
+      <div style="margin-top:14px">
+        <button onclick="toggleTrocar()" style="background:none;border:none;color:#444;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline">Trocar senha</button>
+      </div>
+    </div>
+
+    <!-- Tela de setup (primeira vez ou troca) -->
+    <div id="lock-setup" style="display:none">
+      <input type="password" id="setup-senha1" placeholder="Nova senha" maxlength="20"
+        style="width:100%;padding:12px 16px;background:#111;border:1.5px solid #2A2A2A;border-radius:10px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:8px;display:block"
+        onkeydown="if(event.key==='Enter')document.getElementById('setup-senha2').focus()"/>
+      <input type="password" id="setup-senha2" placeholder="Confirme a senha" maxlength="20"
+        style="width:100%;padding:12px 16px;background:#111;border:1.5px solid #2A2A2A;border-radius:10px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:12px;display:block"
+        onkeydown="if(event.key==='Enter')definirSenha()"/>
+      <button class="lock-btn" onclick="definirSenha()">Salvar senha</button>
+      <div class="lock-err" id="setup-err"></div>
+    </div>
+  </div>
+</div>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -286,6 +339,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="nav-item" onclick="goNav('parcelas',this)">
     <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
     Parcelas
+  </div>
+  <div class="nav-item" onclick="goNav('recorrentes',this)">
+    <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+    Recorrentes
   </div>
 
   <div class="sidebar-bottom">
@@ -428,6 +485,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
               </select>
             </div>
           </div>
+          <div id="recorrente-wrap" style="margin-bottom:16px;padding:12px 14px;border:1.5px dashed var(--border);border-radius:var(--radius-xs);display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleRecorrente()">
+            <div id="rec-check" style="width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s"></div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)">Despesa recorrente</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:1px">Aparece automaticamente todo mês no saldo</div>
+            </div>
+          </div>
           <div id="parcela-preview" style="display:none;background:var(--accent-xlight);border-radius:var(--radius-xs);padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--accent);font-weight:500"></div>
           <button class="btn-save" onclick="salvar()">
             <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
@@ -485,6 +549,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             Adicionar
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- RECORRENTES -->
+    <div id="screen-recorrentes" class="screen">
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head"><h3>Lançamentos deste mês</h3><span id="rec-pendente-label" style="font-size:12px;color:var(--muted)"></span></div>
+        <div id="rec-pendentes-lista"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Recorrências ativas</h3><span style="font-size:11px;color:var(--muted)">Clique em cancelar para parar</span></div>
+        <div id="rec-ativas-lista"></div>
       </div>
     </div>
 
@@ -563,6 +639,8 @@ const CAT_CORES=['#1A1A1A','#34C48B','#E85858','#F59E2B','#60B0F4','#F472B6','#A
 const EMOJIS={'Alimentação':'🍔','Moradia':'🏠','Transporte':'🚗','Saúde':'❤️','Lazer':'🎮','Educação':'📚','Vestuário':'👗','Assinaturas':'📱','Salário':'💼','Freelance':'💻','Investimentos':'📈','Outros':'📦'};
 
 let txs=JSON.parse(localStorage.getItem('rj_txs')||'[]');
+let recorrentes=JSON.parse(localStorage.getItem('rj_rec')||'[]');
+let isRecorrente=false;
 let catsD=JSON.parse(localStorage.getItem('rj_cd')||JSON.stringify(CATS_DESP_DEF));
 let catsR=JSON.parse(localStorage.getItem('rj_cr')||JSON.stringify(CATS_REC_DEF));
 let tipo='despesa';
@@ -570,7 +648,7 @@ let barInst=null,donutInst=null,editandoId=null;
 const now=new Date();
 let vy=now.getFullYear(),vm=now.getMonth();
 
-function save(){localStorage.setItem('rj_txs',JSON.stringify(txs));localStorage.setItem('rj_cd',JSON.stringify(catsD));localStorage.setItem('rj_cr',JSON.stringify(catsR));}
+function save(){localStorage.setItem('rj_txs',JSON.stringify(txs));localStorage.setItem('rj_cd',JSON.stringify(catsD));localStorage.setItem('rj_cr',JSON.stringify(catsR));localStorage.setItem('rj_rec',JSON.stringify(recorrentes));}
 function fmtR(v){return'R$ '+Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtMes(y,m){return new Date(y,m,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});}
 function txMes(y,m){return txs.filter(t=>{const d=new Date(t.data+'T12:00');return d.getFullYear()===y&&d.getMonth()===m;});}
@@ -588,7 +666,7 @@ function goNav(id,el){
   if(el)el.classList.add('active');
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
-  const titles={resumo:['Dashboard','Visão geral das suas finanças'],lancar:['Novo Lançamento','Registre uma receita ou despesa'],historico:['Histórico','Todos os seus lançamentos'],categorias:['Categorias','Onde seu dinheiro está indo'],parcelas:['Parcelas','Controle das suas compras parceladas']};
+  const titles={resumo:['Dashboard','Visão geral das suas finanças'],lancar:['Novo Lançamento','Registre uma receita ou despesa'],historico:['Histórico','Todos os seus lançamentos'],categorias:['Categorias','Onde seu dinheiro está indo'],parcelas:['Parcelas','Controle das suas compras parceladas'],recorrentes:['Recorrentes','Despesas e receitas que se repetem todo mês']};
   document.getElementById('topbar-title').textContent=titles[id][0];
   document.getElementById('topbar-sub').textContent=titles[id][1];
   renderAll();
@@ -599,7 +677,7 @@ function changeMonth(d){vm+=d;if(vm>11){vm=0;vy++;}if(vm<0){vm=11;vy--;}renderAl
 function renderAll(){
   const label=fmtMes(vy,vm);
   ['mes-label','mes-label-m','mes-label-h'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=label;});
-  renderMetrics();renderBar();renderDonut();renderUltimos();renderHist();renderCatBars();renderCatsTags();updateCatSel();renderParcelas();
+  gerarPendentesRecorrentes();renderMetrics();renderBar();renderDonut();renderUltimos();renderHist();renderCatBars();renderCatsTags();updateCatSel();renderParcelas();renderRecorrentes();
 }
 
 function renderMetrics(){
@@ -725,6 +803,9 @@ function setTipo(t){
   document.getElementById('btn-desp').className='type-btn '+(t==='despesa'?'active-desp':'');
   document.getElementById('btn-rec').className='type-btn '+(t==='receita'?'active-rec':'');
   updateCatSel();
+  // update recorrente label
+  const recLbl=document.querySelector('#recorrente-wrap div:last-child div:first-child');
+  if(recLbl)recLbl.textContent=(t==='receita'?'Receita recorrente':'Despesa recorrente');
 }
 
 function toggleParcelas(){
@@ -762,6 +843,17 @@ function salvar(){
     }
   } else {
     txs.push({id:Date.now().toString(),tipo,desc,valor,cat,data,forma,parcela:null});
+  }
+  if(isRecorrente){
+    // save as recorrente template
+    const dia=parseInt(document.getElementById('f-data').value.slice(8,10))||1;
+    recorrentes.push({id:'r_'+Date.now(),tipo,desc,valor,cat,forma,dia,ativo:true,criadoEm:new Date().toISOString()});
+    // reset toggle
+    isRecorrente=false;
+    const check=document.getElementById('rec-check');
+    const wrap=document.getElementById('recorrente-wrap');
+    check.innerHTML='';check.style.background='var(--white)';check.style.borderColor='var(--border)';
+    wrap.style.borderColor='var(--border)';wrap.style.background='transparent';
   }
   save();
   document.getElementById('f-desc').value='';
@@ -901,9 +993,191 @@ function salvarEdicao(){
 
 document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)fecharModal();});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')fecharModal();});
+
+function toggleRecorrente(){
+  isRecorrente=!isRecorrente;
+  const check=document.getElementById('rec-check');
+  const wrap=document.getElementById('recorrente-wrap');
+  if(isRecorrente){
+    check.innerHTML='<svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:white;fill:none;stroke-width:3"><polyline points="20 6 9 17 4 12"/></svg>';
+    check.style.background='var(--accent, var(--purple))';
+    check.style.borderColor='var(--accent, var(--purple))';
+    wrap.style.borderColor='var(--accent, var(--purple))';
+    wrap.style.background='var(--accent-xlight, var(--purple-xlight))';
+    // update label
+    const lbl=wrap.querySelector('div:last-child div:first-child');
+    if(lbl) lbl.textContent = (document.getElementById('btn-rec').classList.contains('active-rec') ? 'Receita recorrente' : 'Despesa recorrente');
+  } else {
+    check.innerHTML='';
+    check.style.background='var(--white)';
+    check.style.borderColor='var(--border)';
+    wrap.style.borderColor='var(--border)';
+    wrap.style.background='transparent';
+  }
+}
+
+function gerarPendentesRecorrentes(){
+  const hoje=new Date();
+  // generate for current month AND all future months already viewed
+  // generate for months from recorrente creation up to current view month
+  recorrentes.filter(r=>r.ativo).forEach(r=>{
+    // generate from month of creation up to viewMonth
+    const inicio=new Date(r.criadoEm||hoje);
+    const fimY=vy, fimM=vm;
+    let curY=inicio.getFullYear(), curM=inicio.getMonth();
+    while(curY<fimY||(curY===fimY&&curM<=fimM)){
+      const mesStr=curY+'-'+String(curM+1).padStart(2,'0');
+      const jaExiste=txs.some(t=>t.recId===r.id&&t.data.slice(0,7)===mesStr);
+      if(!jaExiste){
+        const dia=r.dia||1;
+        const dataStr=mesStr+'-'+String(Math.min(dia,28)).padStart(2,'0');
+        txs.push({
+          id:'rec_'+r.id+'_'+mesStr,
+          tipo:r.tipo,desc:r.desc,valor:r.valor,cat:r.cat,
+          data:dataStr,forma:r.forma,
+          recId:r.id,pendente:false,parcela:null
+        });
+      }
+      curM++;
+      if(curM>11){curM=0;curY++;}
+    }
+  });
+  save();
+}
+
+
+
+function cancelarRecorrente(id){
+  if(!confirm('Cancelar esta recorrência? Ela não aparecerá mais nos próximos meses.'))return;
+  const r=recorrentes.find(x=>x.id===id);
+  if(r)r.ativo=false;
+  // remove pending txs for this recorrente
+  txs=txs.filter(t=>!(t.recId===id&&t.pendente));
+  save();renderAll();
+}
+
+function renderRecorrentes(){
+  const mesStr=vy+'-'+String(vm+1).padStart(2,'0');
+  const doMes=txs.filter(t=>t.recId&&!t.pendente&&t.data.slice(0,7)===mesStr);
+  const ativas=recorrentes.filter(r=>r.ativo);
+  const allCats=[...catsD,...catsR];
+
+  const elP=document.getElementById('rec-pendentes-lista');
+  const elA=document.getElementById('rec-ativas-lista');
+  const lbl=document.getElementById('rec-pendente-label');
+  if(lbl)lbl.textContent=doMes.length?doMes.length+' lançamento(s) recorrente(s)':'Nenhuma recorrência neste mês';
+
+  if(!elP||!elA)return;
+
+  if(!doMes.length){
+    elP.innerHTML='<div class="empty-state" style="padding:20px 0"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>Nenhuma recorrência neste mês</p></div>';
+  } else {
+    elP.innerHTML=doMes.map(t=>{
+      const cor=corCat(t.cat,allCats);
+      const s=t.tipo==='receita';
+      return`<div class="tx-item">
+        <div class="tx-dot" style="background:${cor}22">${emoji(t.cat)}</div>
+        <div class="tx-info">
+          <div class="tx-desc">${t.desc||t.cat} <span style="display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:#EEF6FF;color:#3B82F6;margin-left:6px">🔁 Recorrente</span></div>
+          <div class="tx-meta">${t.cat} · ${t.forma} · todo mês</div>
+        </div>
+        <div class="tx-val ${s?'pos':'neg'}">${s?'+':'-'} ${fmtR(t.valor)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  if(!ativas.length){
+    elA.innerHTML='<div class="empty-state" style="padding:20px 0"><p>Nenhuma recorrência cadastrada ainda</p></div>';
+  } else {
+    elA.innerHTML=ativas.map(r=>{
+      const cor=corCat(r.cat,allCats);
+      const s=r.tipo==='receita';
+      const desde=r.criadoEm?new Date(r.criadoEm).toLocaleDateString('pt-BR',{month:'short',year:'numeric'}):'—';
+      return`<div class="tx-item">
+        <div class="tx-dot" style="background:${cor}22">${emoji(r.cat)}</div>
+        <div class="tx-info">
+          <div class="tx-desc">${r.desc||r.cat}</div>
+          <div class="tx-meta">${r.cat} · ${r.forma} · dia ${r.dia||1} · desde ${desde}</div>
+        </div>
+        <div class="tx-val ${s?'pos':'neg'}" style="margin-right:8px">${s?'+':'-'} ${fmtR(r.valor)}</div>
+        <button onclick="cancelarRecorrente('${r.id}')" style="padding:5px 10px;background:var(--red-bg);color:var(--red);border:1px solid var(--red);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0">Cancelar</button>
+      </div>`;
+    }).join('');
+  }
+}
+
 document.getElementById('f-data').value=new Date().toISOString().slice(0,10);
 document.getElementById('parcelas-wrap').style.display='none';
 renderAll();
+</script>
+<script>
+(function(){
+  const HASH_KEY='rj_pw_hash';
+
+  async function hashSenha(s){
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function desbloquear(){
+    const ls=document.getElementById('lock-screen');
+    ls.style.transition='opacity .3s';
+    ls.style.opacity='0';
+    setTimeout(()=>ls.style.display='none',300);
+  }
+
+  const stored=localStorage.getItem(HASH_KEY);
+  const sub=document.getElementById('lock-sub');
+
+  if(!stored){
+    // First access — show setup
+    sub.textContent='Crie uma senha para proteger seu app';
+    document.getElementById('lock-setup').style.display='block';
+    document.getElementById('setup-senha1').focus();
+  } else {
+    // Has password — show login
+    sub.textContent='Digite sua senha para continuar';
+    document.getElementById('lock-login').style.display='block';
+    document.getElementById('lock-input').focus();
+  }
+
+  window.tentarSenha=async function(){
+    const val=document.getElementById('lock-input').value;
+    if(!val)return;
+    const h=await hashSenha(val);
+    if(h===localStorage.getItem(HASH_KEY)){
+      desbloquear();
+    } else {
+      const inp=document.getElementById('lock-input');
+      document.getElementById('lock-err').textContent='Senha incorreta. Tente novamente.';
+      inp.value='';
+      inp.classList.add('shake');
+      setTimeout(()=>inp.classList.remove('shake'),400);
+      inp.focus();
+    }
+  };
+
+  window.toggleTrocar=function(){
+    const setup=document.getElementById('lock-setup');
+    const showing=setup.style.display==='block';
+    setup.style.display=showing?'none':'block';
+    if(!showing){
+      document.getElementById('sub').textContent='Trocar senha';
+      document.getElementById('setup-senha1').focus();
+    }
+  };
+
+  window.definirSenha=async function(){
+    const s1=document.getElementById('setup-senha1').value;
+    const s2=document.getElementById('setup-senha2').value;
+    const err=document.getElementById('setup-err');
+    if(s1.length<4){err.textContent='Mínimo de 4 caracteres.';return;}
+    if(s1!==s2){err.textContent='As senhas não coincidem.';return;}
+    const h=await hashSenha(s1);
+    localStorage.setItem(HASH_KEY,h);
+    desbloquear();
+  };
+})();
 </script>
 </body>
 </html>
