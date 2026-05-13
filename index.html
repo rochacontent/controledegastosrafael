@@ -559,8 +559,29 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div id="rec-pendentes-lista"></div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>Recorrências ativas</h3><span style="font-size:11px;color:var(--muted)">Clique em cancelar para parar</span></div>
+        <div class="card-head">
+          <h3>Recorrências ativas</h3>
+          <button onclick="abrirLimpezaDuplicatas()" style="padding:6px 12px;background:var(--white);color:var(--accent);border:1px solid var(--border);border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🧹 Limpar duplicatas</button>
+        </div>
         <div id="rec-ativas-lista"></div>
+      </div>
+
+      <!-- Modal de limpeza de duplicatas -->
+      <div id="limpeza-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:20px">
+        <div style="background:var(--white);border-radius:var(--radius);max-width:520px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:20px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <h3 style="font-size:15px;font-weight:600">Revisar duplicatas</h3>
+              <p style="font-size:12px;color:var(--muted);margin-top:2px">Confira antes de apagar — nada é removido sem sua confirmação.</p>
+            </div>
+            <button onclick="fecharLimpezaDuplicatas()" style="background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;line-height:1">×</button>
+          </div>
+          <div id="limpeza-lista" style="padding:16px 22px;overflow-y:auto;flex:1"></div>
+          <div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end">
+            <button onclick="fecharLimpezaDuplicatas()" style="padding:9px 16px;background:var(--white);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Cancelar</button>
+            <button id="btn-confirmar-limpeza" onclick="confirmarLimpezaDuplicatas()" style="padding:9px 16px;background:var(--red);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Apagar selecionadas</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1065,6 +1086,93 @@ function cancelarRecorrente(id){
   // remove pending txs for this recorrente
   txs=txs.filter(t=>!(t.recId===id&&t.pendente));
   save();renderAll();
+}
+
+// ===== LIMPEZA DE DUPLICATAS =====
+// Detecta lançamentos manuais antigos que ficaram duplicados das recorrências
+// (criados antes do fix, sem o recId amarrado)
+let _duplicatasDetectadas=[];
+
+function detectarDuplicatas(){
+  const duplicatas=[];
+  recorrentes.forEach(r=>{
+    const oficiais=txs.filter(t=>t.recId===r.id&&t.id&&t.id.startsWith('rec_'));
+    oficiais.forEach(oficial=>{
+      const mes=oficial.data.slice(0,7);
+      const candidatos=txs.filter(t=>
+        t.id!==oficial.id &&
+        !t.recId &&
+        !t.parcela &&
+        t.tipo===r.tipo &&
+        (t.desc||'')===(r.desc||'') &&
+        Math.abs(t.valor-r.valor)<0.01 &&
+        t.cat===r.cat &&
+        t.forma===r.forma &&
+        t.data.slice(0,7)===mes
+      );
+      candidatos.forEach(c=>{
+        duplicatas.push({tx:c,recRef:r,mes:mes,oficial:oficial});
+      });
+    });
+  });
+  return duplicatas;
+}
+
+function abrirLimpezaDuplicatas(){
+  _duplicatasDetectadas=detectarDuplicatas();
+  const modal=document.getElementById('limpeza-modal');
+  const lista=document.getElementById('limpeza-lista');
+  const btn=document.getElementById('btn-confirmar-limpeza');
+
+  if(!_duplicatasDetectadas.length){
+    lista.innerHTML='<div style="text-align:center;padding:30px 0;color:var(--muted)"><div style="font-size:32px;margin-bottom:8px">✨</div><p style="font-size:13px">Nenhuma duplicata encontrada!</p><p style="font-size:11px;margin-top:4px">Seus lançamentos recorrentes estão limpinhos.</p></div>';
+    btn.style.display='none';
+  } else {
+    btn.style.display='block';
+    const allCats=[...catsD,...catsR];
+    lista.innerHTML='<p style="font-size:12px;color:var(--muted);margin-bottom:12px">Encontrei <strong style="color:var(--text)">'+_duplicatasDetectadas.length+'</strong> lançamento(s) que parecem ser duplicatas das suas recorrências. Marque os que quer apagar:</p>'+
+      _duplicatasDetectadas.map((d,i)=>{
+        const cor=corCat(d.tx.cat,allCats);
+        const s=d.tx.tipo==='receita';
+        const dataFmt=new Date(d.tx.data+'T12:00').toLocaleDateString('pt-BR');
+        return`<label style="display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer">
+          <input type="checkbox" class="dup-check" data-idx="${i}" checked style="width:16px;height:16px;cursor:pointer;flex-shrink:0">
+          <div class="tx-dot" style="background:${cor}22;width:34px;height:34px">${emoji(d.tx.cat)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:500">${d.tx.desc||d.tx.cat}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">${d.tx.cat} · ${d.tx.forma} · ${dataFmt}</div>
+          </div>
+          <div class="tx-val ${s?'pos':'neg'}" style="font-size:13px;font-weight:600">${s?'+':'-'} ${fmtR(d.tx.valor)}</div>
+        </label>`;
+      }).join('');
+  }
+  modal.style.display='flex';
+}
+
+function fecharLimpezaDuplicatas(){
+  document.getElementById('limpeza-modal').style.display='none';
+  _duplicatasDetectadas=[];
+}
+
+function confirmarLimpezaDuplicatas(){
+  const checks=document.querySelectorAll('.dup-check:checked');
+  if(!checks.length){
+    alert('Nenhum item selecionado para apagar.');
+    return;
+  }
+  if(!confirm('Apagar '+checks.length+' lançamento(s) duplicado(s)? Esta ação não pode ser desfeita.'))return;
+
+  const idsParaApagar=new Set();
+  checks.forEach(c=>{
+    const idx=parseInt(c.dataset.idx);
+    if(_duplicatasDetectadas[idx])idsParaApagar.add(_duplicatasDetectadas[idx].tx.id);
+  });
+
+  txs=txs.filter(t=>!idsParaApagar.has(t.id));
+  save();
+  fecharLimpezaDuplicatas();
+  renderAll();
+  alert('✓ '+idsParaApagar.size+' lançamento(s) removido(s) com sucesso.');
 }
 
 function renderRecorrentes(){
