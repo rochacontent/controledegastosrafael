@@ -974,6 +974,10 @@ function renderParcelas(){
 function deletar(id){
   const t=txs.find(x=>x.id===id);
   if(!t)return;
+  if(t.recId){
+    deletarRecorrente(t.recId,t.data);
+    return;
+  }
   if(t.grupoId&&t.totalParcelas>1){
     const restantes=txs.filter(x=>x.grupoId===t.grupoId);
     const opcao=confirm(`Este lançamento faz parte de uma compra de ${t.totalParcelas}x.\n\nOK = excluir TODAS as ${restantes.length} parcela(s)\nCancelar = excluir só esta parcela`);
@@ -982,6 +986,40 @@ function deletar(id){
   } else {
     if(!confirm('Excluir este lançamento?'))return;
     txs=txs.filter(x=>x.id!==id);
+  }
+  save();renderAll();
+}
+
+// Fluxo de exclusão de recorrência com 2 perguntas:
+// 1) Todos os meses OU somente o mês atual?
+// 2) Se "todos", manter pagamentos anteriores no histórico?
+// "Anteriores" = meses ANTES do mês de hoje (passado). O mês de hoje e futuros são apagados.
+function deletarRecorrente(recId,dataRef){
+  const r=recorrentes.find(x=>x.id===recId);
+  if(!r&&!txs.some(t=>t.recId===recId))return;
+  const hoje=new Date();
+  const mesHoje = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0');
+  const mesRef = dataRef ? dataRef.slice(0,7) : (vy+'-'+String(vm+1).padStart(2,'0'));
+  const todos = confirm(
+    'Excluir esta recorrência:\n\n'+
+    'OK = TODOS os meses (passados e/ou futuros)\n'+
+    'Cancelar = somente o mês '+mesRef.split('-').reverse().join('/')
+  );
+  if(todos){
+    const manter = confirm(
+      'Devemos manter os pagamentos anteriores no histórico?\n\n'+
+      'OK = manter histórico (apaga deste mês em diante)\n'+
+      'Cancelar = apagar tudo (passado, presente e futuro)'
+    );
+    if(r) r.ativo=false;
+    if(manter){
+      txs=txs.filter(t=>!(t.recId===recId && t.data.slice(0,7)>=mesHoje));
+    } else {
+      txs=txs.filter(t=>t.recId!==recId);
+      recorrentes=recorrentes.filter(x=>x.id!==recId);
+    }
+  } else {
+    txs=txs.filter(t=>!(t.recId===recId && t.data.slice(0,7)===mesRef));
   }
   save();renderAll();
 }
@@ -1089,12 +1127,7 @@ function gerarPendentesRecorrentes(){
 
 
 function cancelarRecorrente(id){
-  if(!confirm('Cancelar esta recorrência? Ela não aparecerá mais nos próximos meses.'))return;
-  const r=recorrentes.find(x=>x.id===id);
-  if(r)r.ativo=false;
-  // remove pending txs for this recorrente
-  txs=txs.filter(t=>!(t.recId===id&&t.pendente));
-  save();renderAll();
+  deletarRecorrente(id);
 }
 
 // ===== LIMPEZA DE DUPLICATAS =====
@@ -1209,7 +1242,8 @@ function renderRecorrentes(){
           <div class="tx-desc">${t.desc||t.cat} <span style="display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:#EEF6FF;color:#3B82F6;margin-left:6px">🔁 Recorrente</span></div>
           <div class="tx-meta">${t.cat} · ${t.forma} · todo mês</div>
         </div>
-        <div class="tx-val ${s?'pos':'neg'}">${s?'+':'-'} ${fmtR(t.valor)}</div>
+        <div class="tx-val ${s?'pos':'neg'}" style="margin-right:4px">${s?'+':'-'} ${fmtR(t.valor)}</div>
+        <button class="del-btn" onclick="deletar('${t.id}')" aria-label="Excluir" title="Excluir recorrência"><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
       </div>`;
     }).join('');
   }
