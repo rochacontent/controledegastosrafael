@@ -832,6 +832,14 @@ function salvar(){
   const forma=document.getElementById('f-forma').value;
   const msg=document.getElementById('form-msg');
   if(!data||isNaN(valor)||valor<=0){msg.textContent='Preencha o valor e a data.';msg.className='form-msg err';return;}
+  // Se for recorrente, cria primeiro o template para conseguirmos amarrar o lançamento manual a ele
+  let recIdNovo=null;
+  if(isRecorrente){
+    const dia=parseInt(document.getElementById('f-data').value.slice(8,10))||1;
+    recIdNovo='r_'+Date.now();
+    recorrentes.push({id:recIdNovo,tipo,desc,valor,cat,forma,dia,ativo:true,criadoEm:data+'T12:00:00'});
+  }
+
   if(forma==='Crédito'){
     const n=parseInt(document.getElementById('f-parcelas').value)||1;
     const valorParc=parseFloat((valor/n).toFixed(2));
@@ -839,15 +847,20 @@ function salvar(){
     const dataBase=new Date(data+'T12:00');
     for(let i=0;i<n;i++){
       const d=new Date(dataBase);d.setMonth(d.getMonth()+i);
-      txs.push({id:Date.now().toString()+'_'+i,tipo,desc,valor:valorParc,cat,data:d.toISOString().slice(0,10),forma,parcela:i+1,totalParcelas:n,grupoId,valorTotal:valor,pago:i===0});
+      const dataIso=d.toISOString().slice(0,10);
+      // Se for recorrente E for a primeira parcela, usar o id no padrão rec_ para evitar duplicação
+      const txId=(recIdNovo&&i===0)
+        ? 'rec_'+recIdNovo+'_'+dataIso.slice(0,7)
+        : Date.now().toString()+'_'+i;
+      txs.push({id:txId,tipo,desc,valor:valorParc,cat,data:dataIso,forma,parcela:i+1,totalParcelas:n,grupoId,valorTotal:valor,pago:i===0,recId:(recIdNovo&&i===0)?recIdNovo:undefined});
     }
   } else {
-    txs.push({id:Date.now().toString(),tipo,desc,valor,cat,data,forma,parcela:null});
+    // Se for recorrente, usar id e recId no padrão para que gerarPendentesRecorrentes não duplique
+    const txId=recIdNovo ? 'rec_'+recIdNovo+'_'+data.slice(0,7) : Date.now().toString();
+    txs.push({id:txId,tipo,desc,valor,cat,data,forma,parcela:null,recId:recIdNovo||undefined});
   }
+
   if(isRecorrente){
-    // save as recorrente template
-    const dia=parseInt(document.getElementById('f-data').value.slice(8,10))||1;
-    recorrentes.push({id:'r_'+Date.now(),tipo,desc,valor,cat,forma,dia,ativo:true,criadoEm:new Date().toISOString()});
     // reset toggle
     isRecorrente=false;
     const check=document.getElementById('rec-check');
