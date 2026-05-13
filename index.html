@@ -853,6 +853,15 @@ function salvar(){
   const forma=document.getElementById('f-forma').value;
   const msg=document.getElementById('form-msg');
   if(!data||isNaN(valor)||valor<=0){msg.textContent='Preencha o valor e a data.';msg.className='form-msg err';return;}
+
+  // crédito parcelado + recorrente são conflitantes — avisa em vez de criar duas estruturas que vão duplicar
+  const _nParcCheck = forma==='Crédito' ? (parseInt(document.getElementById('f-parcelas').value)||1) : 1;
+  if(isRecorrente && forma==='Crédito' && _nParcCheck>1){
+    msg.textContent='Não dá pra combinar recorrência com crédito parcelado. Tire as parcelas ou desmarque recorrente.';
+    msg.className='form-msg err';
+    return;
+  }
+
   // Se for recorrente, cria primeiro o template para conseguirmos amarrar o lançamento manual a ele
   let recIdNovo=null;
   if(isRecorrente){
